@@ -18,7 +18,8 @@ type Byte struct {
 
 func SplitFileByLineCount(reader io.Reader, unitLineCount int) error {
 	scanner := bufio.NewScanner(reader)
-	lineCount := 0
+
+	var lineCount int = 0
 	fileIndex := 1
 	var file *os.File
 
@@ -30,7 +31,7 @@ func SplitFileByLineCount(reader io.Reader, unitLineCount int) error {
 			}
 
 			// 書き出しファイル
-			filename := fmt.Sprintf("example%d", fileIndex)
+			filename := fmt.Sprintf("part-line-%d", fileIndex)
 			var err error
 			file, err = os.Create(filename)
 			if err != nil {
@@ -55,31 +56,47 @@ func SplitFileByLineCount(reader io.Reader, unitLineCount int) error {
 	return nil
 }
 
-func SplitFileByBytes(reader io.Reader, bytesPerPart int64) error {
-	if bytesPerPart <= 0 {
-		return fmt.Errorf("invalid bytesPerPart value: %d", bytesPerPart)
+func SplitFileByBytes(reader io.Reader, unitByteCount int64) error {
+	// 指定のバイト数が0より小さい場合はエラー
+	if unitByteCount <= 0 {
+		return fmt.Errorf("invalid unitByteCount value: %d", unitByteCount)
 	}
-	partNumber := 1
-	for {
-		partFilename := fmt.Sprintf("part-%d", partNumber)
-		partFile, err := os.Create(partFilename)
-		if err != nil {
-			return err
-		}
 
-		n, err := io.CopyN(partFile, reader, bytesPerPart)
-		partFile.Close()
+	scanner := bufio.NewScanner(reader)
+	scanner.Split(bufio.ScanBytes)
 
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
+	var byteCount int64 = 0
+	fileIndex := 1
+	var file *os.File
 
-		if n > 0 {
-			partNumber++
+	for scanner.Scan() {
+		if byteCount%unitByteCount == 0 {
+			if file != nil {
+				file.Close()
+				file = nil
+			}
+
+			// 書き出しファイル
+			filename := fmt.Sprintf("part-byte-%d", fileIndex)
+			var err error
+			file, err = os.Create(filename)
+			if err != nil {
+				panic(err)
+			}
+			fileIndex++
+
 		}
+		fmt.Fprint(file, scanner.Text())
+
+		byteCount++
+	}
+
+	if file != nil {
+		file.Close()
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("reading input: %w", err)
 	}
 
 	return nil
