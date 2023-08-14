@@ -9,15 +9,23 @@ import (
 	"os"
 )
 
+type Mode interface {
+	Split(io.Reader) error
+}
+
 type Line struct {
-	LineCount int
+	UnitLineCount int
 }
 
 type Byte struct {
-	BytesPerPart int64
+	UnitByteCount int64
 }
 
-func SplitFileByLineCount(reader io.Reader, unitLineCount int) error {
+type Chunk struct {
+	UnitChunkCount int
+}
+
+func (l Line) Split(reader io.Reader) error {
 	scanner := bufio.NewScanner(reader)
 
 	var lineCount int = 0
@@ -25,7 +33,7 @@ func SplitFileByLineCount(reader io.Reader, unitLineCount int) error {
 	var file *os.File
 
 	for scanner.Scan() {
-		if lineCount%unitLineCount == 0 {
+		if lineCount%l.UnitLineCount == 0 {
 			if file != nil {
 				file.Close()
 				file = nil
@@ -57,10 +65,10 @@ func SplitFileByLineCount(reader io.Reader, unitLineCount int) error {
 	return nil
 }
 
-func SplitFileByBytes(reader io.Reader, unitByteCount int64) error {
+func (b Byte) Split(reader io.Reader) error {
 	// 指定のバイト数が0より小さい場合はエラー
-	if unitByteCount <= 0 {
-		return fmt.Errorf("invalid unitByteCount value: %d", unitByteCount)
+	if b.UnitByteCount <= 0 {
+		return fmt.Errorf("invalid unitByteCount value: %d", b.UnitByteCount)
 	}
 
 	scanner := bufio.NewScanner(reader)
@@ -71,7 +79,7 @@ func SplitFileByBytes(reader io.Reader, unitByteCount int64) error {
 	var file *os.File
 
 	for scanner.Scan() {
-		if byteCount%unitByteCount == 0 {
+		if byteCount%b.UnitByteCount == 0 {
 			if file != nil {
 				file.Close()
 				file = nil
@@ -103,10 +111,10 @@ func SplitFileByBytes(reader io.Reader, unitByteCount int64) error {
 	return nil
 }
 
-func SplitFileByNum(reader io.Reader, unitChunkCount int) error {
+func (c Chunk) Split(reader io.Reader) error {
 	// 指定の数が0より小さい場合はエラー
-	if unitChunkCount <= 0 {
-		return fmt.Errorf("invalid unitChunkCount value: %d", unitChunkCount)
+	if c.UnitChunkCount <= 0 {
+		return fmt.Errorf("invalid unitChunkCount value: %d", c.UnitChunkCount)
 	}
 
 	// 読み込んだ合計のサイズ
@@ -131,10 +139,10 @@ func SplitFileByNum(reader io.Reader, unitChunkCount int) error {
 		actualReader = buf
 	}
 
-	unitByteCount := totalSize / int64(unitChunkCount)
-	extraBytes := totalSize % int64(unitChunkCount) // 追加で余りを取得
+	unitByteCount := totalSize / int64(c.UnitChunkCount)
+	extraBytes := totalSize % int64(c.UnitChunkCount) // 追加で余りを取得
 
-	for i := 0; i < unitChunkCount; i++ {
+	for i := 0; i < c.UnitChunkCount; i++ {
 		partFileName := fmt.Sprintf("part-num-%d", i)
 		partFile, err := os.Create(partFileName)
 		if err != nil {
@@ -142,7 +150,7 @@ func SplitFileByNum(reader io.Reader, unitChunkCount int) error {
 		}
 
 		bytesToWrite := unitByteCount
-		if i == unitChunkCount-1 {
+		if i == c.UnitChunkCount-1 {
 			bytesToWrite += extraBytes // 最後のファイルに余りの部分を付与
 		}
 
@@ -177,21 +185,20 @@ func main() {
 	flag.Parse()
 	args := flag.Args()
 
-	fmt.Println(args)
-	fmt.Println(lineCount)
-	fmt.Println(chunkCount)
-	fmt.Println(byteCount)
-
 	// NOTE: lineCount, chunkCount, byteCount の値が、デフォルト値以外の値になっているものが2つ以上あったらエラーにする
 	optionCount := 0
+	var mode Mode = Line{UnitLineCount: defaultLineCount}
 	if lineCount != defaultLineCount {
 		optionCount++
+		mode = Line{UnitLineCount: lineCount}
 	}
 	if chunkCount != defaultChunkCount {
 		optionCount++
+		mode = Chunk{UnitChunkCount: chunkCount}
 	}
 	if byteCount != defaultByteCount {
 		optionCount++
+		mode = Byte{UnitByteCount: byteCount}
 	}
 	if optionCount > 1 {
 		fmt.Fprintln(os.Stderr, "Please specify only one option")
@@ -212,23 +219,7 @@ func main() {
 	}
 	defer f.Close()
 
-	// 指定したバイト数で分割
-	if err := SplitFileByBytes(f, byteCount); err != nil {
-		fmt.Fprintf(os.Stderr, "fail split file by bytes: %v\n", err)
+	if err := mode.Split(f); err != nil {
+		fmt.Fprintf(os.Stderr, "fail split file: %v\n", err)
 	}
-
-	// 指定した行数で分割
-	if err := SplitFileByLineCount(f, lineCount); err != nil {
-		fmt.Fprintf(os.Stderr, "fail open and process file: %v\n", err)
-	}
-
-	// 指定した数で分割
-	if err := SplitFileByNum(f, chunkCount); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-	}
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "fail open and process file: %v\n", err)
-	}
-
 }
