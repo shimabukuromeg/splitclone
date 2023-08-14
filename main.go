@@ -163,10 +163,14 @@ var (
 	byteCount  int64
 )
 
+const defaultLineCount = 1000
+const defaultChunkCount = 0
+const defaultByteCount = 0
+
 func init() {
-	flag.IntVar(&lineCount, "l", 1000, "line_count [file]")
-	flag.IntVar(&chunkCount, "n", 0, "chunk_count [file]")
-	flag.Int64Var(&byteCount, "b", 0, "byte_count [file]")
+	flag.IntVar(&lineCount, "l", defaultLineCount, "line_count [file]")
+	flag.IntVar(&chunkCount, "n", defaultChunkCount, "chunk_count [file]")
+	flag.Int64Var(&byteCount, "b", defaultByteCount, "byte_count [file]")
 }
 
 func main() {
@@ -178,7 +182,22 @@ func main() {
 	fmt.Println(chunkCount)
 	fmt.Println(byteCount)
 
-	// TODO: lineCount, chunkCount, byteCount の値が、デフォルト値以外の値になっているものが2つ以上あったらエラーにする
+	// NOTE: lineCount, chunkCount, byteCount の値が、デフォルト値以外の値になっているものが2つ以上あったらエラーにする
+	optionCount := 0
+	if lineCount != defaultLineCount {
+		optionCount++
+	}
+	if chunkCount != defaultChunkCount {
+		optionCount++
+	}
+	if byteCount != defaultByteCount {
+		optionCount++
+	}
+	if optionCount > 1 {
+		fmt.Fprintln(os.Stderr, "Please specify only one option")
+		flag.Usage()
+		return
+	}
 
 	// 分割対象のファイルは１つだけ指定する。 TODO: 標準入力の場合も考慮する
 	if len(args) != 1 {
