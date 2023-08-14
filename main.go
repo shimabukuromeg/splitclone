@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -102,14 +103,68 @@ func SplitFileByBytes(reader io.Reader, unitByteCount int64) error {
 	return nil
 }
 
+func SplitFileByNum(reader io.Reader, unitChunkCount int) error {
+	// 指定の数が0より小さい場合はエラー
+	if unitChunkCount <= 0 {
+		return fmt.Errorf("invalid unitChunkCount value: %d", unitChunkCount)
+	}
+
+	// 読み込んだ合計のサイズ
+	var totalSize int64
+	var actualReader io.Reader = reader
+
+	switch r := reader.(type) {
+	case *os.File:
+		fi, err := r.Stat()
+		if err != nil {
+			return err
+		}
+		totalSize = fi.Size()
+		actualReader = r
+	default:
+		buf := new(bytes.Buffer)
+		_, err := io.Copy(buf, reader)
+		if err != nil {
+			return err
+		}
+		totalSize = int64(buf.Len())
+		actualReader = buf
+	}
+
+	unitByteCount := totalSize / int64(unitChunkCount)
+	extraBytes := totalSize % int64(unitChunkCount) // 追加で余りを取得
+
+	for i := 0; i < unitChunkCount; i++ {
+		partFileName := fmt.Sprintf("part-num-%d", i)
+		partFile, err := os.Create(partFileName)
+		if err != nil {
+			return err
+		}
+
+		bytesToWrite := unitByteCount
+		if i == unitChunkCount-1 {
+			bytesToWrite += extraBytes // 最後のファイルに余りの部分を付与
+		}
+
+		_, err = io.CopyN(partFile, actualReader, bytesToWrite)
+		if err != nil {
+			partFile.Close()
+			return err
+		}
+		partFile.Close()
+
+	}
+	return nil
+}
+
 var (
-	unitLineCount int
-	chunkCount    int
-	byteCount     int64
+	lineCount  int
+	chunkCount int
+	byteCount  int64
 )
 
 func init() {
-	flag.IntVar(&unitLineCount, "l", 1000, "line_count [file]")
+	flag.IntVar(&lineCount, "l", 1000, "line_count [file]")
 	flag.IntVar(&chunkCount, "n", 0, "chunk_count [file]")
 	flag.Int64Var(&byteCount, "b", 0, "byte_count [file]")
 }
@@ -119,17 +174,18 @@ func main() {
 	args := flag.Args()
 
 	fmt.Println(args)
+	fmt.Println(lineCount)
 	fmt.Println(chunkCount)
 	fmt.Println(byteCount)
 
-	// 分割対象のファイルは１つだけ指定
+	// TODO: lineCount, chunkCount, byteCount の値が、デフォルト値以外の値になっているものが2つ以上あったらエラーにする
+
+	// 分割対象のファイルは１つだけ指定する。 TODO: 標準入力の場合も考慮する
 	if len(args) != 1 {
 		fmt.Fprintf(os.Stderr, "invalid args value: %v\n", len(args))
 		flag.Usage()
 		return
 	}
-
-	// TODO: lineCount, chunkCount, byteCount の値が、デフォルト値以外の値になっているものが2つ以上あったらエラーにする
 
 	f, err := os.Open(args[0])
 	if err != nil {
@@ -137,20 +193,20 @@ func main() {
 	}
 	defer f.Close()
 
-	// TODO: 標準入力を読み取ります
-	// reader := bufio.NewReader(os.Stdin)
-
 	// 指定したバイト数で分割
 	if err := SplitFileByBytes(f, byteCount); err != nil {
 		fmt.Fprintf(os.Stderr, "fail split file by bytes: %v\n", err)
 	}
 
 	// 指定した行数で分割
-	if err := SplitFileByLineCount(f, unitLineCount); err != nil {
+	if err := SplitFileByLineCount(f, lineCount); err != nil {
 		fmt.Fprintf(os.Stderr, "fail open and process file: %v\n", err)
 	}
 
-	// TODO: 指定した数で分割
+	// 指定した数で分割
+	if err := SplitFileByNum(f, chunkCount); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+	}
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "fail open and process file: %v\n", err)
