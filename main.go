@@ -16,14 +16,14 @@ type Byte struct {
 	BytesPerPart int64
 }
 
-func SplitFileByLine(reader io.Reader, lineCount int) error {
+func SplitFileByLineCount(reader io.Reader, unitLineCount int) error {
 	scanner := bufio.NewScanner(reader)
-	count := 0
+	lineCount := 0
 	fileIndex := 1
 	var file *os.File
 
 	for scanner.Scan() {
-		if count%lineCount == 0 {
+		if lineCount%unitLineCount == 0 {
 			if file != nil {
 				file.Close()
 				file = nil
@@ -41,7 +41,7 @@ func SplitFileByLine(reader io.Reader, lineCount int) error {
 		}
 		fmt.Fprintln(file, scanner.Text())
 
-		count++
+		lineCount++
 	}
 
 	if file != nil {
@@ -86,13 +86,13 @@ func SplitFileByBytes(reader io.Reader, bytesPerPart int64) error {
 }
 
 var (
-	lineCount  int
-	chunkCount int
-	byteCount  int64
+	unitLineCount int
+	chunkCount    int
+	byteCount     int64
 )
 
 func init() {
-	flag.IntVar(&lineCount, "l", 1000, "line_count [file]")
+	flag.IntVar(&unitLineCount, "l", 1000, "line_count [file]")
 	flag.IntVar(&chunkCount, "n", 0, "chunk_count [file]")
 	flag.Int64Var(&byteCount, "b", 0, "byte_count [file]")
 }
@@ -129,7 +129,7 @@ func main() {
 	}
 
 	// 指定した行数で分割
-	if err := SplitFileByLine(f, lineCount); err != nil {
+	if err := SplitFileByLineCount(f, unitLineCount); err != nil {
 		fmt.Fprintf(os.Stderr, "fail open and process file: %v\n", err)
 	}
 
