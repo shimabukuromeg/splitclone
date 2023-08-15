@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -45,7 +46,7 @@ func TestLineSplit(t *testing.T) {
 	// 生成されたファイル
 	files, err := os.ReadDir(d)
 	if err != nil {
-		t.Errorf("!!! %+v", err)
+		t.Errorf("Fail os.ReadDir %+v", err)
 	}
 
 	// ファイルの期待値
@@ -77,23 +78,88 @@ func TestLineSplit(t *testing.T) {
 
 	// ファイルの行数を確認する
 	for i, f := range files {
-		if countFileLines(t, filepath.Join(d, f.Name())) != wantFiles[i].lineCount {
-			t.Errorf("files[%d], %d != %d", i, countFileLines(t, filepath.Join(d, f.Name())), wantFiles[i].lineCount)
+		lineCount := countFileLines(t, filepath.Join(d, f.Name()))
+		if lineCount != wantFiles[i].lineCount {
+			t.Errorf("files[%d], %d != %d", i, lineCount, wantFiles[i].lineCount)
 		}
 	}
 
 }
 
-// func TestByteSplit(t *testing.T) {
-// 	input := "abc"
-// 	reader := bytes.NewBufferString(input)
-// 	mode := Byte{UnitByteCount: 1}
+func TestByteSplit(t *testing.T) {
+	input := "abcdefghijklmn"
+	reader := bytes.NewBufferString(input)
+	mode := Byte{UnitByteCount: 4}
 
-// 	if err := mode.Split(reader); err != nil {
-// 		t.Errorf("Failed to split: %v", err)
-// 	}
-// 	// 同様に、ファイルの出力を確認またはモックします。
-// }
+	d := t.TempDir()
+
+	// 分割実行
+	if err := mode.Split(reader, d); err != nil {
+		t.Errorf("Failed to split: %v", err)
+	}
+
+	// 生成されたファイル
+	files, err := os.ReadDir(d)
+	if err != nil {
+		t.Errorf("Fail os.ReadDir %+v", err)
+	}
+
+	// ファイルの期待値
+	wantFiles := []struct {
+		name      string
+		byteCount int64
+	}{
+		{
+			name:      "part-byte-1",
+			byteCount: 4,
+		},
+		{
+			name:      "part-byte-2",
+			byteCount: 4,
+		},
+		{
+			name:      "part-byte-3",
+			byteCount: 4,
+		},
+		{
+			name:      "part-byte-4",
+			byteCount: 2,
+		},
+	}
+
+	// ファイルの件数の確認
+	if len(files) != len(wantFiles) {
+		t.Errorf("mismatch the number of files, got=%d, want=%d", len(files), len(wantFiles))
+	}
+
+	// ファイル名確認
+	for i, f := range files {
+		if f.Name() != wantFiles[i].name {
+			t.Errorf("files[%d], %s != %s", i, f.Name(), wantFiles[i].name)
+		}
+	}
+
+	// ファイルサイズを確認する
+	for i, f := range files {
+		file, err := os.Open(filepath.Join(d, f.Name()))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			t.Errorf("Fail os.Open %v", err)
+		}
+		defer file.Close()
+
+		fi, err := file.Stat()
+		if err != nil {
+			t.Errorf("Fail file.Stat %v", err)
+		}
+		totalSize := fi.Size()
+
+		if totalSize != wantFiles[i].byteCount {
+			t.Errorf("files[%d], %d != %d", i, totalSize, wantFiles[i].byteCount)
+		}
+	}
+
+}
 
 // func TestChunkSplit(t *testing.T) {
 // 	input := "abcdef"
