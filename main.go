@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 type Mode interface {
-	Split(io.Reader) error
+	Split(io.Reader, string) error
 }
 
 type Line struct {
@@ -25,7 +26,7 @@ type Chunk struct {
 	UnitChunkCount int
 }
 
-func (l Line) Split(reader io.Reader) error {
+func (l Line) Split(reader io.Reader, outputDirName string) error {
 	scanner := bufio.NewScanner(reader)
 
 	var lineCount int = 0
@@ -42,7 +43,7 @@ func (l Line) Split(reader io.Reader) error {
 			// 書き出しファイル
 			filename := fmt.Sprintf("part-line-%d", fileIndex)
 			var err error
-			file, err = os.Create(filename)
+			file, err = os.Create(filepath.Join(outputDirName, filename))
 			if err != nil {
 				panic(err)
 			}
@@ -65,7 +66,7 @@ func (l Line) Split(reader io.Reader) error {
 	return nil
 }
 
-func (b Byte) Split(reader io.Reader) error {
+func (b Byte) Split(reader io.Reader, outputDirName string) error {
 	// 指定のバイト数が0より小さい場合はエラー
 	if b.UnitByteCount <= 0 {
 		return fmt.Errorf("invalid unitByteCount value: %d", b.UnitByteCount)
@@ -88,7 +89,7 @@ func (b Byte) Split(reader io.Reader) error {
 			// 書き出しファイル
 			filename := fmt.Sprintf("part-byte-%d", fileIndex)
 			var err error
-			file, err = os.Create(filename)
+			file, err = os.Create(filepath.Join(outputDirName, filename))
 			if err != nil {
 				panic(err)
 			}
@@ -111,7 +112,7 @@ func (b Byte) Split(reader io.Reader) error {
 	return nil
 }
 
-func (c Chunk) Split(reader io.Reader) error {
+func (c Chunk) Split(reader io.Reader, outputDirName string) error {
 	// 指定の数が0より小さい場合はエラー
 	if c.UnitChunkCount <= 0 {
 		return fmt.Errorf("invalid unitChunkCount value: %d", c.UnitChunkCount)
@@ -143,8 +144,8 @@ func (c Chunk) Split(reader io.Reader) error {
 	extraBytes := totalSize % int64(c.UnitChunkCount) // 追加で余りを取得
 
 	for i := 0; i < c.UnitChunkCount; i++ {
-		partFileName := fmt.Sprintf("part-num-%d", i)
-		partFile, err := os.Create(partFileName)
+		filename := fmt.Sprintf("part-num-%d", i)
+		file, err := os.Create(filepath.Join(outputDirName, filename))
 		if err != nil {
 			return err
 		}
@@ -154,12 +155,12 @@ func (c Chunk) Split(reader io.Reader) error {
 			bytesToWrite += extraBytes // 最後のファイルに余りの部分を付与
 		}
 
-		_, err = io.CopyN(partFile, actualReader, bytesToWrite)
+		_, err = io.CopyN(file, actualReader, bytesToWrite)
 		if err != nil {
-			partFile.Close()
+			file.Close()
 			return err
 		}
-		partFile.Close()
+		file.Close()
 
 	}
 	return nil
@@ -226,7 +227,9 @@ func main() {
 		reader = f
 	}
 
-	if err := mode.Split(reader); err != nil {
+	var outputDirName string = ""
+
+	if err := mode.Split(reader, outputDirName); err != nil {
 		fmt.Fprintf(os.Stderr, "fail split file: %v\n", err)
 	}
 }
