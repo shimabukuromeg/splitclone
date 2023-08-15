@@ -144,7 +144,7 @@ func (c Chunk) Split(reader io.Reader, outputDirName string) error {
 	extraBytes := totalSize % int64(c.UnitChunkCount) // 追加で余りを取得
 
 	for i := 0; i < c.UnitChunkCount; i++ {
-		filename := fmt.Sprintf("part-num-%d", i)
+		filename := fmt.Sprintf("part-num-%d", i+1)
 		file, err := os.Create(filepath.Join(outputDirName, filename))
 		if err != nil {
 			return err
