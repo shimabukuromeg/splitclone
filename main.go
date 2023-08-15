@@ -183,10 +183,10 @@ func init() {
 
 func main() {
 	flag.Parse()
-	args := flag.Args()
 
-	// NOTE: lineCount, chunkCount, byteCount の値が、デフォルト値以外の値になっているものが2つ以上あったらエラーにする
+	// 指定したオプション数
 	optionCount := 0
+	// 分割モード
 	var mode Mode = Line{UnitLineCount: defaultLineCount}
 	if lineCount != defaultLineCount {
 		optionCount++
@@ -200,26 +200,33 @@ func main() {
 		optionCount++
 		mode = Byte{UnitByteCount: byteCount}
 	}
+
+	// lineCount, chunkCount, byteCount の値が、デフォルト値以外の値になっているものが2つ以上あったらエラーにする
 	if optionCount > 1 {
 		fmt.Fprintln(os.Stderr, "Please specify only one option")
 		flag.Usage()
 		return
 	}
 
-	// 分割対象のファイルは１つだけ指定する。 TODO: 標準入力の場合も考慮する
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "invalid args value: %v\n", len(args))
-		flag.Usage()
-		return
+	var filename string
+	if args := flag.Args(); len(args) > 0 {
+		filename = args[0]
 	}
 
-	f, err := os.Open(args[0])
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "fail open and process file: %v\n", err)
+	var reader io.Reader
+	switch filename {
+	case "":
+		reader = os.Stdin
+	default:
+		f, err := os.Open(filename)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		defer f.Close()
+		reader = f
 	}
-	defer f.Close()
 
-	if err := mode.Split(f); err != nil {
+	if err := mode.Split(reader); err != nil {
 		fmt.Fprintf(os.Stderr, "fail split file: %v\n", err)
 	}
 }
