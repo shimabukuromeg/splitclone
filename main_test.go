@@ -91,6 +91,74 @@ func TestSplit(t *testing.T) {
 	}
 }
 
+func BenchmarkSplit(b *testing.B) {
+	splitTests := []struct {
+		name      string
+		input     string
+		mode      Mode
+		wantFiles []struct {
+			name      string
+			byteCount int64
+			lineCount int
+		}
+	}{
+		{
+			name:  "LineSplit",
+			input: "line1\nline2\nline3\n",
+			mode:  Line{UnitLineCount: 2},
+			wantFiles: []struct {
+				name      string
+				byteCount int64
+				lineCount int
+			}{
+				{name: "part-line-1", byteCount: 12, lineCount: 2},
+				{name: "part-line-2", byteCount: 6, lineCount: 1},
+			},
+		},
+		{
+			name:  "ByteSplit",
+			input: "abcdefghijklmn",
+			mode:  Byte{UnitByteCount: 4},
+			wantFiles: []struct {
+				name      string
+				byteCount int64
+				lineCount int
+			}{
+				{name: "part-byte-1", byteCount: 4, lineCount: 1},
+				{name: "part-byte-2", byteCount: 4, lineCount: 1},
+				{name: "part-byte-3", byteCount: 4, lineCount: 1},
+				{name: "part-byte-4", byteCount: 2, lineCount: 1},
+			},
+		},
+		{
+			name:  "ChunkSplit",
+			input: "abcdefghijklmn",
+			mode:  Chunk{UnitChunkCount: 2},
+			wantFiles: []struct {
+				name      string
+				byteCount int64
+				lineCount int
+			}{
+				{name: "part-num-1", byteCount: 7, lineCount: 1},
+				{name: "part-num-2", byteCount: 7, lineCount: 1},
+			},
+		},
+	}
+
+	for _, tt := range splitTests {
+		b.Run(tt.name, func(b *testing.B) {
+			for n := 0; n < b.N; n++ { // ベンチマークのループ
+				reader := bytes.NewBufferString(tt.input)
+				d := b.TempDir()
+
+				if err := tt.mode.Split(reader, d); err != nil {
+					b.Errorf("Failed to split: %v", err)
+				}
+			}
+		})
+	}
+}
+
 // ファイルの内容をチェックする共通関数
 func checkFiles(t *testing.T, dir string, wantFiles []struct {
 	name      string
