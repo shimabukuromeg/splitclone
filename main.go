@@ -72,41 +72,54 @@ func (b Byte) Split(reader io.Reader, outputDirName string) error {
 		return fmt.Errorf("invalid unitByteCount value: %d", b.UnitByteCount)
 	}
 
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(bufio.ScanBytes)
+	// 読み込んだ合計のサイズ
+	var totalSize int64
+	var actualReader io.Reader = reader
 
-	var byteCount int64 = 0
-	fileIndex := 1
-	var file *os.File
-
-	for scanner.Scan() {
-		if byteCount%b.UnitByteCount == 0 {
-			if file != nil {
-				file.Close()
-				file = nil
-			}
-
-			// 書き出しファイル
-			filename := fmt.Sprintf("part-byte-%d", fileIndex)
-			var err error
-			file, err = os.Create(filepath.Join(outputDirName, filename))
-			if err != nil {
-				panic(err)
-			}
-			fileIndex++
-
+	switch r := reader.(type) {
+	case *os.File:
+		fi, err := r.Stat()
+		if err != nil {
+			return err
 		}
-		fmt.Fprint(file, scanner.Text())
-
-		byteCount++
+		totalSize = fi.Size()
+		actualReader = r
+	default:
+		buf := new(bytes.Buffer)
+		_, err := io.Copy(buf, reader)
+		if err != nil {
+			return err
+		}
+		totalSize = int64(buf.Len())
+		actualReader = buf
 	}
 
-	if file != nil {
+	chunkCount = int(totalSize) / int(b.UnitByteCount)
+	if int(totalSize)%int(b.UnitByteCount) != 0 {
+		chunkCount++
+	}
+
+	i := 1
+	value := totalSize
+
+	for value > 0 {
+		bytesToWrite := b.UnitByteCount
+		if value < b.UnitByteCount {
+			bytesToWrite = value
+		}
+		filename := fmt.Sprintf("part-byte-%d", i)
+		file, err := os.Create(filepath.Join(outputDirName, filename))
+		if err != nil {
+			return err
+		}
+		_, err = io.CopyN(file, actualReader, bytesToWrite)
+		if err != nil {
+			file.Close()
+			return err
+		}
 		file.Close()
-	}
-
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("reading input: %w", err)
+		value -= b.UnitByteCount
+		i++
 	}
 
 	return nil
@@ -161,7 +174,6 @@ func (c Chunk) Split(reader io.Reader, outputDirName string) error {
 			return err
 		}
 		file.Close()
-
 	}
 	return nil
 }
