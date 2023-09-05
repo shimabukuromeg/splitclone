@@ -15,9 +15,11 @@ var (
 	byteCount  int64
 )
 
-const defaultLineCount = 1000
-const defaultChunkCount = 0
-const defaultByteCount = 0
+const (
+	defaultLineCount  = 1000
+	defaultChunkCount = 0
+	defaultByteCount  = 0
+)
 
 func init() {
 	flag.IntVar(&lineCount, "l", defaultLineCount, "line_count [file]")
@@ -28,21 +30,31 @@ func init() {
 func main() {
 	flag.Parse()
 
+	cli := &split.CLI{
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+		Stdin:  os.Stdin,
+	}
+
+	args := []string{"a", "b", "c"}
+
+	cli.Run(args)
+
 	// 指定したオプション数
 	optionCount := 0
-	// 分割モード
-	var mode split.Mode = split.Line{UnitLineCount: defaultLineCount}
+
+	var spliter split.Spliter = split.Line{UnitLineCount: defaultLineCount}
 	if lineCount != defaultLineCount {
 		optionCount++
-		mode = split.Line{UnitLineCount: lineCount}
+		spliter = split.Line{UnitLineCount: lineCount}
 	}
 	if chunkCount != defaultChunkCount {
 		optionCount++
-		mode = split.Chunk{UnitChunkCount: chunkCount}
+		spliter = split.Chunk{UnitChunkCount: chunkCount}
 	}
 	if byteCount != defaultByteCount {
 		optionCount++
-		mode = split.Byte{UnitByteCount: byteCount}
+		spliter = split.Byte{UnitByteCount: byteCount}
 	}
 
 	// lineCount, chunkCount, byteCount の値が、デフォルト値以外の値になっているものが2つ以上あったらエラーにする
@@ -72,7 +84,7 @@ func main() {
 
 	var outputDirName string = ""
 
-	if err := mode.Split(reader, outputDirName); err != nil {
+	if err := spliter.Split(reader, outputDirName); err != nil {
 		fmt.Fprintf(os.Stderr, "fail split file: %v\n", err)
 	}
 }

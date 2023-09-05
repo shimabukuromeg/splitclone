@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-type Mode interface {
+type Spliter interface {
 	Split(io.Reader, string) error
 }
 
