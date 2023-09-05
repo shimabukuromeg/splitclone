@@ -13,19 +13,19 @@ type Spliter interface {
 	Split(io.Reader, string) error
 }
 
-type Line struct {
-	UnitLineCount int
+type LineSpliter struct {
+	LineCount int
 }
 
-type Byte struct {
-	UnitByteCount int64
+type ByteSpliter struct {
+	ByteCount int64
 }
 
-type Chunk struct {
-	UnitChunkCount int
+type ChunkSpliter struct {
+	ChunkCount int
 }
 
-func (l Line) Split(reader io.Reader, outputDirName string) error {
+func (ls LineSpliter) Split(reader io.Reader, outputDirName string) error {
 	scanner := bufio.NewScanner(reader)
 
 	var lineCount int = 0
@@ -33,7 +33,7 @@ func (l Line) Split(reader io.Reader, outputDirName string) error {
 	var file *os.File
 
 	for scanner.Scan() {
-		if lineCount%l.UnitLineCount == 0 {
+		if lineCount%ls.LineCount == 0 {
 			if file != nil {
 				file.Close()
 				file = nil
@@ -65,10 +65,10 @@ func (l Line) Split(reader io.Reader, outputDirName string) error {
 	return nil
 }
 
-func (b Byte) Split(reader io.Reader, outputDirName string) error {
+func (bs ByteSpliter) Split(reader io.Reader, outputDirName string) error {
 	// 指定のバイト数が0より小さい場合はエラー
-	if b.UnitByteCount <= 0 {
-		return fmt.Errorf("invalid unitByteCount value: %d", b.UnitByteCount)
+	if bs.ByteCount <= 0 {
+		return fmt.Errorf("invalid ByteCount value: %d", bs.ByteCount)
 	}
 
 	// 読み込んだ合計のサイズ
@@ -93,8 +93,8 @@ func (b Byte) Split(reader io.Reader, outputDirName string) error {
 		actualReader = buf
 	}
 
-	chunkCount := int(totalSize) / int(b.UnitByteCount)
-	if int(totalSize)%int(b.UnitByteCount) != 0 {
+	chunkCount := int(totalSize) / int(bs.ByteCount)
+	if int(totalSize)%int(bs.ByteCount) != 0 {
 		chunkCount++
 	}
 
@@ -102,8 +102,8 @@ func (b Byte) Split(reader io.Reader, outputDirName string) error {
 	value := totalSize
 
 	for value > 0 {
-		bytesToWrite := b.UnitByteCount
-		if value < b.UnitByteCount {
+		bytesToWrite := bs.ByteCount
+		if value < bs.ByteCount {
 			bytesToWrite = value
 		}
 		filename := fmt.Sprintf("part-byte-%d", i)
@@ -117,17 +117,17 @@ func (b Byte) Split(reader io.Reader, outputDirName string) error {
 			return err
 		}
 		file.Close()
-		value -= b.UnitByteCount
+		value -= bs.ByteCount
 		i++
 	}
 
 	return nil
 }
 
-func (c Chunk) Split(reader io.Reader, outputDirName string) error {
+func (cs ChunkSpliter) Split(reader io.Reader, outputDirName string) error {
 	// 指定の数が0より小さい場合はエラー
-	if c.UnitChunkCount <= 0 {
-		return fmt.Errorf("invalid unitChunkCount value: %d", c.UnitChunkCount)
+	if cs.ChunkCount <= 0 {
+		return fmt.Errorf("invalid ChunkCount value: %d", cs.ChunkCount)
 	}
 
 	// 読み込んだ合計のサイズ
@@ -152,18 +152,18 @@ func (c Chunk) Split(reader io.Reader, outputDirName string) error {
 		actualReader = buf
 	}
 
-	unitByteCount := totalSize / int64(c.UnitChunkCount)
-	extraBytes := totalSize % int64(c.UnitChunkCount) // 追加で余りを取得
+	ByteCount := totalSize / int64(cs.ChunkCount)
+	extraBytes := totalSize % int64(cs.ChunkCount) // 追加で余りを取得
 
-	for i := 0; i < c.UnitChunkCount; i++ {
+	for i := 0; i < cs.ChunkCount; i++ {
 		filename := fmt.Sprintf("part-num-%d", i+1)
 		file, err := os.Create(filepath.Join(outputDirName, filename))
 		if err != nil {
 			return err
 		}
 
-		bytesToWrite := unitByteCount
-		if i == c.UnitChunkCount-1 {
+		bytesToWrite := ByteCount
+		if i == cs.ChunkCount-1 {
 			bytesToWrite += extraBytes // 最後のファイルに余りの部分を付与
 		}
 

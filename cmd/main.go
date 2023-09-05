@@ -43,18 +43,18 @@ func main() {
 	// 指定したオプション数
 	optionCount := 0
 
-	var spliter split.Spliter = split.Line{UnitLineCount: defaultLineCount}
+	var spliter split.Spliter = split.LineSpliter{LineCount: defaultLineCount}
 	if lineCount != defaultLineCount {
 		optionCount++
-		spliter = split.Line{UnitLineCount: lineCount}
+		spliter = split.LineSpliter{LineCount: lineCount}
 	}
 	if chunkCount != defaultChunkCount {
 		optionCount++
-		spliter = split.Chunk{UnitChunkCount: chunkCount}
+		spliter = split.ChunkSpliter{ChunkCount: chunkCount}
 	}
 	if byteCount != defaultByteCount {
 		optionCount++
-		spliter = split.Byte{UnitByteCount: byteCount}
+		spliter = split.ByteSpliter{ByteCount: byteCount}
 	}
 
 	// lineCount, chunkCount, byteCount の値が、デフォルト値以外の値になっているものが2つ以上あったらエラーにする

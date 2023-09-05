@@ -37,7 +37,7 @@ var splitTests = []struct {
 	{
 		name:    "LineSplit",
 		input:   "line1\nline2\nline3\n",
-		Spliter: Line{UnitLineCount: 2},
+		Spliter: LineSpliter{LineCount: 2},
 		wantFiles: []struct {
 			name      string
 			byteCount int64
@@ -50,7 +50,7 @@ var splitTests = []struct {
 	{
 		name:    "ByteSplit",
 		input:   "abcdefghijklmn",
-		Spliter: Byte{UnitByteCount: 4},
+		Spliter: ByteSpliter{ByteCount: 4},
 		wantFiles: []struct {
 			name      string
 			byteCount int64
@@ -65,7 +65,7 @@ var splitTests = []struct {
 	{
 		name:    "ChunkSplit",
 		input:   "abcdefghijklmn",
-		Spliter: Chunk{UnitChunkCount: 2},
+		Spliter: ChunkSpliter{ChunkCount: 2},
 		wantFiles: []struct {
 			name      string
 			byteCount int64
