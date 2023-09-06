@@ -30,6 +30,12 @@ func init() {
 func main() {
 	flag.Parse()
 
+	fmt.Print(flag.Args())
+	fmt.Print("\n=========\n")
+	fmt.Printf("line: %d\n", lineCount)
+	fmt.Printf("chunkCount: %d\n", chunkCount)
+	fmt.Printf("byteCount: %d\n", byteCount)
+
 	cli := &split.CLI{
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
@@ -43,6 +49,10 @@ func main() {
 	// 指定したオプション数
 	optionCount := 0
 
+	/*
+		flagをパースした結果から分割方法を確定するロジック
+		TODO: もっといい感じに実装できそうな気がする。
+	*/
 	var spliter split.Spliter = split.LineSpliter{LineCount: defaultLineCount}
 	if lineCount != defaultLineCount {
 		optionCount++
@@ -57,18 +67,30 @@ func main() {
 		spliter = split.ByteSpliter{ByteCount: byteCount}
 	}
 
-	// lineCount, chunkCount, byteCount の値が、デフォルト値以外の値になっているものが2つ以上あったらエラーにする
+	/*
+		optionが複数指定されてたらエラーにする処理。
+		optionが複数指定されてるか判断する方法が、デフォルト値以外の値になってるオプションの数で判断してしまってるけど
+		普通にコマンドの引数で渡されてるフラグをチェックしたい。
+		flagパッケージでデフォルト値を指定するので、最初から値が入ってて、入ってない場合指定されてない、みたいな判定ができない。
+	*/
 	if optionCount > 1 {
 		fmt.Fprintln(os.Stderr, "Please specify only one option")
 		flag.Usage()
 		return
 	}
 
+	/*
+		ファイル名を取得してる。一番最初決めうちにしてしまってるけどもうちょっとちゃんとしたチェックした方が良さそう？
+	*/
 	var filename string
 	if args := flag.Args(); len(args) > 0 {
 		filename = args[0]
 	}
 
+	/*
+		指定されたファイル名から、ファイルを読み込んで io.Reader型の変数に格納
+		NOTE: io.Reader型とは、「何かを読み込む機能を持つものをまとめて扱うために抽象化されたもの」
+	*/
 	var reader io.Reader
 	switch filename {
 	case "":

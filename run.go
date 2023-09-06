@@ -19,7 +19,7 @@ func (cli *CLI) Run(args []string) error {
 	flag.IntVar(&test, "t", 100, "test")
 	flag.Parse()
 
-	fmt.Printf("test is %d\n", test)
+	// fmt.Printf("test is %d\n", test)
 
 	for _, v := range args {
 		fmt.Println(v)
