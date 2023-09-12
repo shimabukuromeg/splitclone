@@ -27,7 +27,7 @@ func countFileLines(t *testing.T, file *os.File) int {
 var splitTests = []struct {
 	name      string
 	input     string
-	mode      Mode
+	Spliter   Spliter
 	wantFiles []struct {
 		name      string
 		byteCount int64
@@ -35,9 +35,9 @@ var splitTests = []struct {
 	}
 }{
 	{
-		name:  "LineSplit",
-		input: "line1\nline2\nline3\n",
-		mode:  Line{UnitLineCount: 2},
+		name:    "LineSplit",
+		input:   "line1\nline2\nline3\n",
+		Spliter: LineSpliter{LineCount: 2},
 		wantFiles: []struct {
 			name      string
 			byteCount int64
@@ -48,9 +48,9 @@ var splitTests = []struct {
 		},
 	},
 	{
-		name:  "ByteSplit",
-		input: "abcdefghijklmn",
-		mode:  Byte{UnitByteCount: 4},
+		name:    "ByteSplit",
+		input:   "abcdefghijklmn",
+		Spliter: ByteSpliter{ByteCount: 4},
 		wantFiles: []struct {
 			name      string
 			byteCount int64
@@ -63,9 +63,9 @@ var splitTests = []struct {
 		},
 	},
 	{
-		name:  "ChunkSplit",
-		input: "abcdefghijklmn",
-		mode:  Chunk{UnitChunkCount: 2},
+		name:    "ChunkSplit",
+		input:   "abcdefghijklmn",
+		Spliter: ChunkSpliter{ChunkCount: 2},
 		wantFiles: []struct {
 			name      string
 			byteCount int64
@@ -83,7 +83,7 @@ func TestSplit(t *testing.T) {
 			reader := bytes.NewBufferString(tt.input)
 			d := t.TempDir()
 
-			if err := tt.mode.Split(reader, d); err != nil {
+			if err := tt.Spliter.Split(reader, d); err != nil {
 				t.Errorf("Failed to split: %v", err)
 			}
 
@@ -99,7 +99,7 @@ func BenchmarkSplit(b *testing.B) {
 				reader := bytes.NewBufferString(tt.input)
 				d := b.TempDir()
 
-				if err := tt.mode.Split(reader, d); err != nil {
+				if err := tt.Spliter.Split(reader, d); err != nil {
 					b.Errorf("Failed to split: %v", err)
 				}
 			}
