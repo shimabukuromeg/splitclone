@@ -63,6 +63,7 @@ func (cli *CLI) Run(args []string) int {
 		flagパッケージでデフォルト値を指定するので、最初から値が入ってて、入ってない場合指定されてない、みたいな判定ができない。
 	*/
 	if optionCount > 1 {
+		// 指定されたメッセージを標準エラー出力に出力する。
 		fmt.Fprintln(os.Stderr, "複数のオプションは選択できません")
 		commandLine.Usage()
 		return 1
@@ -75,6 +76,7 @@ func (cli *CLI) Run(args []string) int {
 	if args := commandLine.Args(); len(args) > 0 {
 		filename = args[0]
 	} else {
+		// 指定されたメッセージを標準エラー出力に出力する。
 		fmt.Fprintln(os.Stderr, "ファイルを指定してください")
 		commandLine.Usage()
 		return 0
@@ -91,6 +93,7 @@ func (cli *CLI) Run(args []string) int {
 	default:
 		f, err := os.Open(filename)
 		if err != nil {
+			// 指定されたメッセージを標準エラー出力に出力する。
 			fmt.Fprintln(os.Stderr, err)
 		}
 		defer f.Close()
@@ -100,6 +103,7 @@ func (cli *CLI) Run(args []string) int {
 	var outputDirName string = ""
 
 	if err := spliter.Split(reader, outputDirName); err != nil {
+		// 指定されたメッセージを標準エラー出力に出力する。
 		fmt.Fprintf(os.Stderr, "fail split file: %v\n", err)
 		return 1
 	}

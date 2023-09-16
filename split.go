@@ -59,6 +59,8 @@ func (ls LineSpliter) Split(reader io.Reader, outputDirName string) error {
 	}
 
 	if err := scanner.Err(); err != nil {
+		// 文字列ベースで簡単なエラーの作り方
+		// https://docs.google.com/presentation/d/1HW3wG8J_Q2536Iu__7HGr_mhurHajC7IOGjCnn3kZmg/edit#slide=id.g7e7c89dcc9_0_166
 		return fmt.Errorf("reading input: %w", err)
 	}
 
