@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 )
 
 type Spliter interface {
@@ -23,6 +24,24 @@ type ByteSpliter struct {
 
 type ChunkSpliter struct {
 	ChunkCount int
+}
+
+// スタックトレースで使う構造体
+type ErrorWithStack struct {
+	err   error
+	stack []byte
+}
+
+func (e *ErrorWithStack) Error() string {
+	return e.err.Error() + string(e.stack)
+}
+
+func WrapWithStack(err error) error {
+	stk := debug.Stack()
+	return &ErrorWithStack{
+		err:   err,
+		stack: stk,
+	}
 }
 
 func (ls LineSpliter) Split(reader io.Reader, outputDirName string) error {
@@ -70,7 +89,7 @@ func (ls LineSpliter) Split(reader io.Reader, outputDirName string) error {
 func (bs ByteSpliter) Split(reader io.Reader, outputDirName string) error {
 	// 指定のバイト数が0より小さい場合はエラー
 	if bs.ByteCount <= 0 {
-		return fmt.Errorf("invalid ByteCount value: %d", bs.ByteCount)
+		return WrapWithStack(fmt.Errorf("invalid ByteCount value: %d\n ", bs.ByteCount))
 	}
 
 	// 読み込んだ合計のサイズ
