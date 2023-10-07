@@ -29,7 +29,16 @@ func (r *REPL) Run() int {
 	}
 
 	fmt.Println("📂 Selected file")
-	file := prompt.Input(currentDir+"> ", fileCompleter)
+
+	p := prompt.New(
+		func(s string) {},
+		fileCompleter,
+		prompt.OptionPrefix(currentDir+"> "),
+		prompt.OptionPrefixTextColor(prompt.Blue),
+	)
+
+	file := p.Input()
+
 	fmt.Println("✅ Selected file:", file)
 
 	return 1
