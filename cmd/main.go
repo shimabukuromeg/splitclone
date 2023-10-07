@@ -2,7 +2,8 @@ package main
 
 import (
 	"os"
-	split "splitclone"
+
+	split "github.com/shimabukuromeg/splitclone"
 )
 
 func main() {
