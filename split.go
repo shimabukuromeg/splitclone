@@ -59,7 +59,8 @@ func (ls LineSpliter) Split(reader io.Reader, outputDirName string) error {
 			}
 
 			// 書き出しファイル
-			filename := fmt.Sprintf("part-line-%d", fileIndex)
+			// filename := fmt.Sprintf("part-line-%d", fileIndex)
+			filename := genFileName(fileIndex)
 			var err error
 			file, err = os.Create(filepath.Join(outputDirName, filename))
 			if err != nil {
@@ -127,7 +128,7 @@ func (bs ByteSpliter) Split(reader io.Reader, outputDirName string) error {
 		if value < bs.ByteCount {
 			bytesToWrite = value
 		}
-		filename := fmt.Sprintf("part-byte-%d", i)
+		filename := genFileName(i)
 		file, err := os.Create(filepath.Join(outputDirName, filename))
 		if err != nil {
 			return err
@@ -177,7 +178,7 @@ func (cs ChunkSpliter) Split(reader io.Reader, outputDirName string) error {
 	extraBytes := totalSize % int64(cs.ChunkCount) // 追加で余りを取得
 
 	for i := 0; i < cs.ChunkCount; i++ {
-		filename := fmt.Sprintf("part-num-%d", i+1)
+		filename := genFileName(i + 1)
 		file, err := os.Create(filepath.Join(outputDirName, filename))
 		if err != nil {
 			return err
