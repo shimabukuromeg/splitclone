@@ -7,9 +7,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/c-bata/go-prompt"
 	split "github.com/shimabukuromeg/splitclone"
+	"github.com/tj/go-spin"
 )
 
 type REPL struct {
@@ -51,7 +53,7 @@ func (r *REPL) Run() int {
 
 	fmt.Println("✅ Selected file:", file)
 
-	// TODO: 分割する方法を選ぶ（行数・分割数・バイト数）
+	// NOTE: 分割する方法を選ぶ（行数・分割数・バイト数）
 	p2 := prompt.New(
 		func(s string) {},
 		completer,
@@ -102,6 +104,13 @@ func (r *REPL) Run() int {
 				fmt.Println("❌ Please enter a valid number.")
 			}
 		}
+	}
+
+	// NOTE: spinさせて雰囲気出した
+	s := spin.New()
+	for i := 0; i < 15; i++ {
+		fmt.Printf("\r  \033[36msplitting\033[m %s ", s.Next())
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	fmt.Println("✅ Complete")
