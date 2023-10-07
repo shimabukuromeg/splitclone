@@ -108,7 +108,7 @@ func (r *REPL) Run() int {
 
 	// NOTE: spinさせて雰囲気出した
 	s := spin.New()
-	for i := 0; i < 15; i++ {
+	for i := 0; i < 10; i++ {
 		fmt.Printf("\r  \033[36msplitting\033[m %s ", s.Next())
 		time.Sleep(100 * time.Millisecond)
 	}
