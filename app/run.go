@@ -7,6 +7,7 @@ import (
 	"os"
 
 	split "github.com/shimabukuromeg/splitclone"
+	"github.com/shimabukuromeg/splitclone/repl"
 )
 
 type CLI struct {
@@ -56,6 +57,15 @@ func (cli *CLI) Run(args []string) int {
 	if byteCount != DefaultByteCount {
 		optionCount++
 		spliter = split.ByteSpliter{ByteCount: byteCount}
+	}
+
+	// NOTE: オプションの数が 0 だったら repl 起動させる
+	if optionCount == 0 {
+		repl, err := repl.NewRepl()
+		if err != nil {
+			return 0
+		}
+		os.Exit(repl.Run())
 	}
 
 	/*
