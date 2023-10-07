@@ -10,4 +10,5 @@ const defaultSplashText = `
 
  Welcome to SPLIT!
 
- Split a large file into smaller files.`
+ Split a large file into smaller files.
+ `
