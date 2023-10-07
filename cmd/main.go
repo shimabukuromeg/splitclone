@@ -3,12 +3,12 @@ package main
 import (
 	"os"
 
-	split "github.com/shimabukuromeg/splitclone"
+	"github.com/shimabukuromeg/splitclone/app"
 )
 
 func main() {
 
-	cli := &split.CLI{
+	cli := &app.CLI{
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 		Stdin:  os.Stdin,

@@ -1,10 +1,12 @@
-package split
+package app
 
 import (
 	"flag"
 	"fmt"
 	"io"
 	"os"
+
+	split "github.com/shimabukuromeg/splitclone"
 )
 
 type CLI struct {
@@ -42,18 +44,18 @@ func (cli *CLI) Run(args []string) int {
 		flagをパースした結果から分割方法を確定するロジック
 		TODO: もっといい感じに実装できそうな気がする。
 	*/
-	var spliter Spliter = LineSpliter{LineCount: DefaultLineCount}
+	var spliter split.Spliter = split.LineSpliter{LineCount: DefaultLineCount}
 	if lineCount != DefaultLineCount {
 		optionCount++
-		spliter = LineSpliter{LineCount: lineCount}
+		spliter = split.LineSpliter{LineCount: lineCount}
 	}
 	if chunkCount != DefaultChunkCount {
 		optionCount++
-		spliter = ChunkSpliter{ChunkCount: chunkCount}
+		spliter = split.ChunkSpliter{ChunkCount: chunkCount}
 	}
 	if byteCount != DefaultByteCount {
 		optionCount++
-		spliter = ByteSpliter{ByteCount: byteCount}
+		spliter = split.ByteSpliter{ByteCount: byteCount}
 	}
 
 	/*
