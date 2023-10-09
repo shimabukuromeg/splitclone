@@ -1,6 +1,7 @@
 package repl
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c-bata/go-prompt"
+	goprompt "github.com/ktr0731/go-prompt"
 	split "github.com/shimabukuromeg/splitclone"
 	"github.com/tj/go-spin"
 )
@@ -30,21 +31,24 @@ func (r *REPL) Run() int {
 	currentDir, err := os.Getwd()
 	if err != nil {
 		fmt.Println("Error:", err)
-		return 0
+		return 1
 	}
 
 	fmt.Println("📂 Selected file")
 
-	p := prompt.New(
-		func(s string) {},
-		fileCompleter,
-		prompt.OptionPrefix(currentDir+"> "),
-		prompt.OptionPrefixTextColor(prompt.Blue),
-	)
+	var ops []goprompt.Option
 
 	var file string
 	for {
-		file = p.Input()
+		file, err = goprompt.Input(currentDir+"> ", fileCompleter, append(
+			ops,
+			goprompt.OptionPrefixTextColor(goprompt.Color(goprompt.Blue)),
+		)...)
+		if errors.Is(err, goprompt.ErrAbort) {
+			return 1
+		} else if err != nil {
+			return 1
+		}
 		if file != "" {
 			break
 		}
@@ -54,16 +58,16 @@ func (r *REPL) Run() int {
 	fmt.Println("✅ Selected file:", file)
 
 	// NOTE: 分割する方法を選ぶ（行数・分割数・バイト数）
-	p2 := prompt.New(
-		func(s string) {},
-		completer,
-		prompt.OptionPrefix("Please choose a split method > "),
-		prompt.OptionPrefixTextColor(prompt.Blue),
-	)
-
 	var mode string
 	for {
-		mode = p2.Input()
+		// mode = p2.Input()
+		mode, err = goprompt.Input("Please choose a split method > ", completer, append(
+			ops,
+			goprompt.OptionPrefixTextColor(goprompt.Color(goprompt.Blue)),
+		)...)
+		if err != nil {
+			return 1
+		}
 		if mode != "" {
 			break
 		}
@@ -71,13 +75,6 @@ func (r *REPL) Run() int {
 	}
 
 	fmt.Println("Your split method:", mode)
-
-	p3 := prompt.New(
-		func(s string) {},
-		dummyCompleter,
-		prompt.OptionPrefix("count (TYPE_NUMBER) => "),
-		prompt.OptionPrefixTextColor(prompt.Green),
-	)
 
 	f, err := os.Open(file)
 	if err != nil {
@@ -90,7 +87,15 @@ func (r *REPL) Run() int {
 	// TODO: number だけじゃなくて、line,byte　の条件も追加する
 	if mode == "number" {
 		for {
-			count, err := strconv.Atoi(p3.Input())
+			number, err := goprompt.Input("count (TYPE_NUMBER) => ", dummyCompleter, append(
+				ops,
+				goprompt.OptionPrefixTextColor(goprompt.Color(goprompt.Green)),
+			)...)
+			if err != nil {
+				return 1
+			}
+
+			count, err := strconv.Atoi(number)
 			if err == nil {
 				fmt.Println("Received number:", count)
 				var spliter split.Spliter = split.ChunkSpliter{ChunkCount: count}
@@ -119,36 +124,36 @@ func (r *REPL) Run() int {
 }
 
 // dummyCompleter は常に空のサジェスチョンリストを返します。
-func dummyCompleter(in prompt.Document) []prompt.Suggest {
-	return []prompt.Suggest{}
+func dummyCompleter(in goprompt.Document) []goprompt.Suggest {
+	return []goprompt.Suggest{}
 }
 
-func completer(in prompt.Document) []prompt.Suggest {
+func completer(in goprompt.Document) []goprompt.Suggest {
 	// 入力の末尾がスペースかどうかをチェック
 	if strings.HasSuffix(in.Text, " ") {
-		return []prompt.Suggest{} // スペースの後は何もサジェスチョンしない
+		return []goprompt.Suggest{} // スペースの後は何もサジェスチョンしない
 	}
 
-	s := []prompt.Suggest{
+	s := []goprompt.Suggest{
 		{Text: "number", Description: "Split by specified number"},
 		{Text: "line", Description: "Split by specified number of lines"},
 		{Text: "byte", Description: "Split by specified size in bytes"},
 	}
 
-	return prompt.FilterHasPrefix(s, in.GetWordBeforeCursor(), true)
+	return goprompt.FilterHasPrefix(s, in.GetWordBeforeCursor(), true)
 }
 
 func (r *REPL) printSplash() {
 	fmt.Fprintln(r.writer, defaultSplashText)
 }
 
-func fileCompleter(d prompt.Document) []prompt.Suggest {
+func fileCompleter(d goprompt.Document) []goprompt.Suggest {
 	files, _ := listFiles()
-	var s []prompt.Suggest
+	var s []goprompt.Suggest
 	for _, file := range files {
-		s = append(s, prompt.Suggest{Text: file})
+		s = append(s, goprompt.Suggest{Text: file})
 	}
-	return prompt.FilterHasPrefix(s, d.GetWordBeforeCursor(), true)
+	return goprompt.FilterHasPrefix(s, d.GetWordBeforeCursor(), true)
 }
 
 func listFiles() ([]string, error) {
