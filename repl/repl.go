@@ -26,7 +26,7 @@ func NewRepl() (*REPL, error) {
 
 func (r *REPL) Run() int {
 	r.printSplash()
-	defer fmt.Fprintln(r.writer, "👋 Good Bye :)")
+	defer fmt.Fprintln(r.writer, "\n👋 Good Bye :)")
 
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -55,7 +55,7 @@ func (r *REPL) Run() int {
 		fmt.Println("❌ No file selected! Please choose a file.")
 	}
 
-	fmt.Println("✅ Selected file:", file)
+	fmt.Printf("✅ Selected file: \033[32m%s\033[0m\n", file)
 
 	// NOTE: 分割する方法を選ぶ（行数・分割数・バイト数）
 	var mode string
@@ -74,7 +74,7 @@ func (r *REPL) Run() int {
 		fmt.Println("❌ No split method selected! Please choose split method.")
 	}
 
-	fmt.Println("Your split method:", mode)
+	fmt.Printf("✅ Your split method: \033[32m%s\033[0m\n", mode)
 
 	f, err := os.Open(file)
 	if err != nil {
@@ -118,7 +118,7 @@ func (r *REPL) Run() int {
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	fmt.Println("✅ Complete")
+	fmt.Printf("\n✅ Complete\n")
 
 	return 1
 }
